@@ -28,7 +28,6 @@ const normalizeKeys = (data) => {
     return newRow;
   });
 };
-// ----------------------------------------
 
 app.post("/split-excel", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("Chưa upload file");
@@ -38,16 +37,15 @@ app.post("/split-excel", upload.single("file"), (req, res) => {
     const sheetName = workbook.SheetNames[0];
 
     let data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-    // 1. Chuẩn hóa key về chữ thường
     data = normalizeKeys(data);
 
     const grouped = {};
+    let totalNumbers = 0;
 
+    // --- XỬ LÝ DỮ LIỆU ---
     data.forEach((row) => {
       let stb = row["stb"] ? row["stb"].toString().replace(/\D/g, "") : "";
       let stbGoc = row["stb"] ? row["stb"].toString().replace(/\D/g, "") : "";
-
       let giaBan = row["giá bán lẻ"] || row["giá bán"] || "";
 
       let dangSo = row["dạng số"]
@@ -64,30 +62,41 @@ app.post("/split-excel", upload.single("file"), (req, res) => {
 
       if (!grouped[dangSo]) grouped[dangSo] = [];
       grouped[dangSo].push(cleanRow);
+
+      totalNumbers += 1;
     });
 
-    // --- XUẤT MỖI DẠNG SỐ THÀNH 1 FILE RIÊNG ---
+    // --- XUẤT FILE VÀ LOG ---
     let outFiles = [];
+    let logPerFile = [];
 
+    console.log("=== BẮT ĐẦU XUẤT FILE ===");
     for (const [type, rows] of Object.entries(grouped)) {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(rows, { header: columnOrder });
-
       XLSX.utils.book_append_sheet(wb, ws, type.substring(0, 31));
 
-      // Tên file an toàn
       const cleanName = type.replace(/[^a-zA-Z0-9]/g, "_");
-
       const filePath = path.join(outputDir, `${cleanName}_${Date.now()}.xlsx`);
-
       XLSX.writeFile(wb, filePath);
       outFiles.push(filePath);
-    }
 
-    // Xóa file upload tạm
+      const logStr = `${type}: ${rows.length} số`;
+      logPerFile.push(logStr);
+      console.log(logStr);
+    }
+    console.log("=== KẾT THÚC XUẤT FILE ===");
+    console.log(`Tổng số số đã xử lý: ${totalNumbers}`);
+
     fs.unlinkSync(req.file.path);
 
-    res.send(`Xong! Đã tạo ${outFiles.length} file:\n\n` + outFiles.join("\n"));
+    res.send(
+      `Xong! Tổng số số đã xử lý: ${totalNumbers}\n` +
+        `Chi tiết mỗi file:\n` +
+        logPerFile.join("\n") +
+        `\n\nCác file đã tạo:\n` +
+        outFiles.join("\n")
+    );
   } catch (err) {
     console.error(err);
     res.status(500).send("Xử lý file lỗi");

@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/TrongPham1920/callback#readme",
   "dependencies": {
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "multer": "^2.0.2",
     "xlsx": "^0.18.5"
