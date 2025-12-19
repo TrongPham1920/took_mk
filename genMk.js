@@ -33,6 +33,16 @@ const normalizeKeys = (data) =>
     return newRow;
   });
 
+const DANG_SO_ALIAS_MAP = {
+  "tien-don-3": "so-tien-don-3",
+  "phat-loc": "so-phat-loc",
+  "loc-phat": "so-loc-phat",
+  "loc-loc": "so-loc-loc",
+  "phat-phat": "so-phat-phat",
+  "tien-don-5": "so-tien-don-5",
+  "so-tien-giua": "tien-giua",
+};
+
 // ===== API =====
 app.post("/split-excel", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).send("❌ Chưa upload file");
@@ -56,12 +66,17 @@ app.post("/split-excel", upload.single("file"), (req, res) => {
       const stb = row["stb"] ? row["stb"].toString().replace(/\D/g, "") : "";
 
       const rawDangSo = row["dạng số"];
-      const dangSo =
+      let dangSo =
         rawDangSo &&
         rawDangSo.toString().trim() !== "" &&
         rawDangSo.toString().toUpperCase() !== "#N/A"
           ? toSnakeCaseNoAccent(rawDangSo.toString())
           : "khong_co_dang_so";
+
+      // 🔥 MAP ALIAS NẾU CÓ
+      if (DANG_SO_ALIAS_MAP[dangSo]) {
+        dangSo = DANG_SO_ALIAS_MAP[dangSo];
+      }
 
       const cleanRow = {
         phone_number: stb,
