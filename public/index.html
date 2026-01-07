@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Tool Tách Excel Dạng Số</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f6fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .box {
+            background: #fff;
+            padding: 24px;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background: #94a3b8;
+        }
+
+        .status {
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <h2>📂 Tách Excel Dạng Số</h2>
+
+        <input type="file" id="file" accept=".xlsx,.xls" />
+
+        <button onclick="upload()">🚀 Xử lý & tải ZIP</button>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        async function upload() {
+            const fileInput = document.getElementById("file");
+            const status = document.getElementById("status");
+            const button = document.querySelector("button");
+
+            if (!fileInput.files.length) {
+                alert("Vui lòng chọn file Excel");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            status.innerText = "⏳ Đang xử lý...";
+            button.disabled = true;
+
+            try {
+                const res = await fetch("/split-excel", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error("Xử lý thất bại");
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "ket_qua.zip";
+                document.body.appendChild(a);
+                a.click();
+
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                status.innerText = "✅ Hoàn thành, file đã tải!";
+            } catch (err) {
+                console.error(err);
+                status.innerText = "❌ Có lỗi xảy ra";
+            } finally {
+                button.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

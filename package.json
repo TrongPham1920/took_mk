@@ -18,9 +18,11 @@
   },
   "homepage": "https://github.com/TrongPham1920/callback#readme",
   "dependencies": {
+    "archiver": "^7.0.1",
     "exceljs": "^4.4.0",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "multer": "^2.0.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xlsx-stream-reader": "^1.1.1"
   }
 }
