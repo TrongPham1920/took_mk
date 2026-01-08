@@ -4,7 +4,6 @@ const fs = require("fs");
 module.exports = async (fileObj) => {
   const buffer = fs.readFileSync(fileObj.path);
 
-  // 🧠 SheetJS đọc được TikTok export
   const wb = XLSX.read(buffer, {
     type: "buffer",
     raw: false,
@@ -24,15 +23,13 @@ module.exports = async (fileObj) => {
 
   if (!data.length) return { type: "empty", data: [] };
 
-  const rows = data.map((row, i) => {
-    row.unshift(undefined); // ExcelJS index từ 1
-    return {
-      number: i + 1,
-      values: row,
-    };
-  });
+  // map row thẳng, không unshift
+  const rows = data.map((row, i) => ({
+    number: i + 1,
+    values: row,
+  }));
 
-  console.log("HEADER:", rows[0].values.slice(1, 6));
+  console.log("HEADER:", rows[0].values.slice(0, 6));
 
   return {
     type: "xlsx",
