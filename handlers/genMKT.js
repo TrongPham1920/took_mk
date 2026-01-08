@@ -1,79 +1,130 @@
 const ExcelJS = require("exceljs");
 const path = require("path");
-const fs = require("fs");
+const readFileAuto = require("../utils/readFileAuto");
 
-module.exports = async (inputPath) => {
+// Hàm chuẩn hóa tiêu đề để dễ so sánh
+function normalizeHeader(h) {
+  return String(h || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[\/]/g, "_");
+}
+
+module.exports = async (fileObj1, fileObj2) => {
   const timestamp = Date.now();
-  const baseDir = path.dirname(inputPath);
-  const outputFile = path.join(baseDir, `Tiktok_nam92_${timestamp}.xlsx`);
+  const outputFile = path.join(
+    __dirname,
+    "../output",
+    `merged_${timestamp}.xlsx`
+  );
+  const outputWorkbook = new ExcelJS.Workbook();
 
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(inputPath);
+  // 1. Đọc dữ liệu từ cả 2 file
+  const res1 = await readFileAuto(fileObj1);
+  const res2 = await readFileAuto(fileObj2);
 
-  // Lấy sheet đầu tiên làm dữ liệu nguồn
-  const sourceSheet = workbook.worksheets[0];
-  const data = [];
+  if (!res1 || !res2) throw new Error("Không thể đọc dữ liệu từ file upload.");
 
-  // Lấy header (dòng 1)
-  const headers = [];
-  sourceSheet.getRow(1).eachCell((cell, colNumber) => {
-    headers[colNumber] = cell.value
-      ? cell.value.toString().trim().toLowerCase()
-      : "";
-  });
+  let dataTongDon = null;
+  let dataDoanhThu = null;
 
-  // Đọc dữ liệu từ dòng 2
-  sourceSheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return;
-    const rowData = {};
-    row.eachCell((cell, colNumber) => {
-      const header = headers[colNumber];
-      if (header) rowData[header] = cell.value;
-    });
-    data.push(rowData);
-  });
+  // 2. LOGIC NHẬN DIỆN FILE THÔNG MINH
+  // Kiểm tra file nào có cột 'seller_sku' -> đó là file Tổng đơn
+  // Kiểm tra file nào có cột 'related_order_id' -> đó là file Doanh thu
+  const h1 = (res1.data[0]?.values || []).map(normalizeHeader);
+  const h2 = (res2.data[0]?.values || []).map(normalizeHeader);
 
-  // Tạo sheet mới đặt tên là nam92
-  const nam92Sheet = workbook.addWorksheet("nam92");
+  if (h1.includes("seller_sku") || h1.includes("order_id")) {
+    dataTongDon = res1;
+    dataDoanhThu = res2;
+  } else {
+    dataTongDon = res2;
+    dataDoanhThu = res1;
+  }
 
-  // Định nghĩa cột cho sheet nam92
-  nam92Sheet.columns = [
-    { header: "Mã Vận Đơn", key: "order_id", width: 25 },
-    { header: "ID Theo Dõi", key: "tracking_id", width: 25 },
-    { header: "Ngày Đặt Hàng", key: "created_time", width: 20 },
-    { header: "Địa Chỉ", key: "address", width: 10 },
-    { header: "Sản Phẩm", key: "sku", width: 30 },
-    { header: "Số Lượng Trước Hủy", key: "qty_before", width: 15 },
-    { header: "Số Lượng Sau Hủy", key: "qty_after", width: 15 },
-    { header: "Số Lượng Cuối Cùng", key: "qty_final", width: 15 },
-    { header: "Sàn", key: "platform", width: 10 },
-    { header: "Shop", key: "shop", width: 15 },
-    { header: "Doanh Thu", key: "revenue", width: 15 },
-    { header: "Ngày Quyết Toán", key: "settlement_date", width: 15 },
-    { header: "Tình Trạng", key: "status", width: 20 },
+  // 3. Cấu hình Sheet TỔNG HỢP
+  const summary = outputWorkbook.addWorksheet("TONG_HOP");
+  summary.columns = [
+    { header: "Order ID", key: "order_id", width: 25 },
+    { header: "Order Status", key: "status", width: 20 },
+    { header: "Seller SKU", key: "sku", width: 25 },
+    { header: "Quantity", key: "qty", width: 10 },
+    { header: "Sku Quantity of return", key: "qty_return", width: 15 },
+    { header: "Cancel Reason", key: "cancel_reason", width: 25 },
+    { header: "Tracking ID", key: "tracking_id", width: 25 },
+    { header: "Package ID", key: "package_id", width: 25 },
+    { header: "Order created time", key: "created_time", width: 20 },
+    { header: "Order settled time", key: "settled_time", width: 20 },
+    { header: "Total settlement amount", key: "settlement_amount", width: 15 },
+    { header: "Total Revenue", key: "revenue", width: 15 },
   ];
 
-  // Map dữ liệu vào sheet mới
-  data.forEach((item) => {
-    nam92Sheet.addRow({
-      order_id: item["order id"] || "",
-      tracking_id: item["tracking id"] || "",
-      created_time: item["created time"] || "",
-      address: "",
-      sku: item["seller sku"] || item["sku id"] || "",
-      qty_before: item["quantity"] || 0,
-      qty_after: 0,
-      qty_final: item["quantity"] || 0,
-      platform: "TIKTOK",
-      shop: "Sim Hải Đăng",
-      revenue: item["order amount"] || 0,
-      settlement_date: "",
-      status: item["order status"] || "",
+  const orderMap = new Map();
+
+  // --- BƯỚC 4: XỬ LÝ FILE TỔNG ĐƠN ---
+  const headersTD = (dataTongDon.data[0]?.values || []).map(normalizeHeader);
+  for (let i = 1; i < dataTongDon.data.length; i++) {
+    const row = dataTongDon.data[i].values;
+    if (!row) continue;
+
+    const record = {};
+    headersTD.forEach((h, idx) => {
+      if (h) record[h] = row[idx];
     });
-  });
 
-  // Ghi file (File này sẽ chứa cả sheet gốc và sheet nam92)
-  await workbook.xlsx.writeFile(outputFile);
+    const orderId = String(record.order_id || "").trim();
+    if (!orderId) continue;
 
+    orderMap.set(orderId, {
+      order_id: orderId,
+      status: record.order_status || "",
+      sku: record.seller_sku || "",
+      qty: Number(record.quantity || 0),
+      qty_return: Number(record.sku_quantity_of_return || 0),
+      cancel_reason: record.cancel_reason || "",
+      tracking_id: record.tracking_id || "",
+      package_id: record.package_id || "",
+      created_time: "",
+      settled_time: "",
+      settlement_amount: 0,
+      revenue: 0,
+    });
+  }
+
+  // --- BƯỚC 5: XỬ LÝ FILE DOANH THU ---
+  const headersDT = (dataDoanhThu.data[0]?.values || []).map(normalizeHeader);
+  for (let i = 1; i < dataDoanhThu.data.length; i++) {
+    const row = dataDoanhThu.data[i].values;
+    if (!row) continue;
+
+    const record = {};
+    headersDT.forEach((h, idx) => {
+      if (h) record[h] = row[idx];
+    });
+
+    const relatedOrderId = String(record.related_order_id || "").trim();
+
+    if (orderMap.has(relatedOrderId)) {
+      const existing = orderMap.get(relatedOrderId);
+      existing.created_time = record.order_created_time || "";
+      existing.settled_time = record.order_settled_time || "";
+      existing.settlement_amount = Number(record.total_settlement_amount || 0);
+      existing.revenue = Number(record.total_revenue || 0);
+    }
+  }
+
+  // --- BƯỚC 6: ĐỔ DỮ LIỆU VÀ ĐỊNH DẠNG ---
+  orderMap.forEach((item) => summary.addRow(item));
+
+  // Làm đẹp Header
+  summary.getRow(1).font = { bold: true };
+  summary.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+
+  // Định dạng số cho cột tiền
+  summary.getColumn("settlement_amount").numFmt = "#,##0";
+  summary.getColumn("revenue").numFmt = "#,##0";
+
+  await outputWorkbook.xlsx.writeFile(outputFile);
   return outputFile;
 };

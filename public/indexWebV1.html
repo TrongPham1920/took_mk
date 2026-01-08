@@ -2,7 +2,7 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>Tool Gộp Báo Cáo Excel</title>
+    <title>Tool Gộp Báo Cáo TikTok Shop</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <style>
@@ -12,7 +12,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 100vh;
+        min-height: 100vh;
         margin: 0;
       }
 
@@ -20,16 +20,23 @@
         background: #fff;
         padding: 30px;
         width: 100%;
-        max-width: 400px;
+        max-width: 450px;
         border-radius: 12px;
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
       }
 
       h2 {
         text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 10px;
         color: #1e293b;
         font-size: 22px;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 25px;
       }
 
       .input-group {
@@ -42,6 +49,14 @@
         font-weight: 600;
         margin-bottom: 8px;
         color: #475569;
+      }
+
+      .label-desc {
+        display: block;
+        font-size: 11px;
+        font-weight: normal;
+        color: #94a3b8;
+        margin-top: 2px;
       }
 
       input[type="file"] {
@@ -58,12 +73,20 @@
         border-color: #2563eb;
       }
 
-      .note {
-        font-size: 12px;
-        color: #64748b;
-        margin-top: -10px;
+      .note-box {
+        background: #fff7ed;
+        border-left: 4px solid #f97316;
+        padding: 12px;
         margin-bottom: 20px;
-        line-height: 1.4;
+        border-radius: 4px;
+      }
+
+      .note-box ul {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 12px;
+        color: #9a3412;
+        line-height: 1.6;
       }
 
       button {
@@ -95,30 +118,40 @@
         min-height: 20px;
       }
       
-      .success { color: #10b981; }
-      .error { color: #ef4444; }
+      .success { color: #10b981; font-weight: bold; }
+      .error { color: #ef4444; font-weight: bold; }
     </style>
   </head>
 
   <body>
     <div class="box">
-      <h2>📊 Gộp Báo Cáo Excel</h2>
+      <h2>📊 Gộp Báo Cáo Đối Soát</h2>
+      <p class="subtitle">Kết hợp dữ liệu Đơn hàng & Doanh thu</p>
+
+      <div class="note-box">
+        <ul>
+          <li><b>File Tổng Đơn:</b> Chứa Order ID, SKU, Trạng thái đơn, Tracking...</li>
+          <li><b>File Doanh Thu:</b> Chứa Tiền thanh toán, Doanh thu, Ngày quyết toán...</li>
+        </ul>
+      </div>
 
       <div class="input-group">
-        <label for="file1">📁 File báo cáo thứ nhất (Chính)</label>
+        <label for="file1">
+          📁 1. File TỔNG ĐƠN (Thông tin chung)
+          <span class="label-desc">Thường có cột: Order ID, Seller SKU, Tracking ID...</span>
+        </label>
         <input type="file" id="file1" accept=".xlsx,.xls" />
       </div>
 
       <div class="input-group">
-        <label for="file2">📁 File báo cáo thứ hai (Phụ)</label>
+        <label for="file2">
+          📁 2. File DOANH THU (Thông tin tài chính)
+          <span class="label-desc">Thường có cột: Related Order ID, Revenue, Settlement...</span>
+        </label>
         <input type="file" id="file2" accept=".xlsx,.xls" />
       </div>
 
-      <div class="note">
-        * Hệ thống sẽ tự động gộp dữ liệu từ hai file vào một file duy nhất.
-      </div>
-
-      <button id="btnSubmit" onclick="mergeFiles()">⚡ Gộp & Tải kết quả</button>
+      <button id="btnSubmit" onclick="mergeFiles()">⚡ Bắt đầu gộp & Tải về</button>
 
       <div class="status" id="status"></div>
     </div>
@@ -131,7 +164,7 @@
         const button = document.getElementById("btnSubmit");
 
         if (!file1.files.length || !file2.files.length) {
-          alert("Vui lòng chọn đầy đủ cả 2 file Excel!");
+          alert("Vui lòng chọn đủ cả 2 file (File Tổng Đơn và File Doanh Thu)!");
           return;
         }
 
@@ -140,34 +173,37 @@
         formData.append("file2", file2.files[0]);
 
         status.className = "status";
-        status.innerText = "⏳ Đang xử lý gộp dữ liệu...";
+        status.innerText = "⏳ Đang phân tích và gộp dữ liệu...";
         button.disabled = true;
 
         try {
-       
           const res = await fetch("/merge-excel", {
             method: "POST",
             body: formData,
           });
 
-          if (!res.ok) throw new Error("Gộp file thất bại");
+          if (!res.ok) {
+             const errorText = await res.text();
+             throw new Error(errorText || "Gộp file thất bại");
+          }
 
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
 
           const a = document.createElement("a");
           a.href = url;
-          a.download = "bao_cao_tong_hop.xlsx"; 
+          const now = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
+          a.download = `bao_cao_doi_soat_tong_hop_${now}.xlsx`; 
 
           document.body.appendChild(a);
           a.click();
           a.remove();
           
           window.URL.revokeObjectURL(url);
-          status.innerHTML = "<span class='success'>✅ Gộp thành công! File đã được tải.</span>";
+          status.innerHTML = "<span class='success'>✅ Thành công! File đã tự động tải về.</span>";
         } catch (err) {
           console.error(err);
-          status.innerHTML = "<span class='error'>❌ Có lỗi xảy ra trong quá trình xử lý.</span>";
+          status.innerHTML = `<span class='error'>❌ Lỗi: ${err.message}</span>`;
         } finally {
           button.disabled = false;
         }
