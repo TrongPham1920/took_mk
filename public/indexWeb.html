@@ -2,82 +2,108 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <title>Tool Xử Lý Excel Số</title>
+    <title>Tool Gộp Báo Cáo TikTok Shop</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <style>
       body {
-        font-family: Arial, sans-serif;
-        background: #f5f6fa;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #f0f2f5;
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 100vh;
+        min-height: 100vh;
+        margin: 0;
       }
 
       .box {
         background: #fff;
-        padding: 24px;
+        padding: 30px;
         width: 100%;
-        max-width: 440px;
-        border-radius: 10px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        max-width: 450px;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
       }
 
       h2 {
         text-align: center;
+        margin-bottom: 10px;
+        color: #1e293b;
+        font-size: 22px;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 25px;
+      }
+
+      .input-group {
         margin-bottom: 20px;
       }
 
-      .mode {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 16px;
-      }
-
-      .mode label {
-        flex: 1;
-        padding: 10px;
-        border: 1px solid #cbd5f5;
-        border-radius: 6px;
-        text-align: center;
-        cursor: pointer;
+      .input-group label {
+        display: block;
         font-size: 14px;
-        background: #f8fafc;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #475569;
       }
 
-      .mode input {
-        display: none;
-      }
-
-      .mode input:checked + label {
-        background: #2563eb;
-        color: #fff;
-        border-color: #2563eb;
-        font-weight: bold;
+      .label-desc {
+        display: block;
+        font-size: 11px;
+        font-weight: normal;
+        color: #94a3b8;
+        margin-top: 2px;
       }
 
       input[type="file"] {
         width: 100%;
-        margin-bottom: 12px;
+        padding: 8px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 6px;
+        background: #f8fafc;
+        cursor: pointer;
+        box-sizing: border-box;
       }
 
-      .note {
-        font-size: 13px;
-        color: #ef4444;
-        margin-bottom: 14px;
-        text-align: center;
+      input[type="file"]:hover {
+        border-color: #2563eb;
+      }
+
+      .note-box {
+        background: #fff7ed;
+        border-left: 4px solid #f97316;
+        padding: 12px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+      }
+
+      .note-box ul {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 12px;
+        color: #9a3412;
+        line-height: 1.6;
       }
 
       button {
         width: 100%;
-        padding: 12px;
+        padding: 14px;
         background: #2563eb;
         color: #fff;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         font-size: 16px;
+        font-weight: bold;
         cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      button:hover {
+        background: #1d4ed8;
       }
 
       button:disabled {
@@ -86,95 +112,98 @@
       }
 
       .status {
-        margin-top: 14px;
+        margin-top: 15px;
         font-size: 14px;
         text-align: center;
+        min-height: 20px;
       }
+      
+      .success { color: #10b981; font-weight: bold; }
+      .error { color: #ef4444; font-weight: bold; }
     </style>
   </head>
 
   <body>
     <div class="box">
-      <h2>📂 Tool Xử Lý Excel Số</h2>
+      <h2>📊 Gộp Báo Cáo Đối Soát</h2>
+      <p class="subtitle">Kết hợp dữ liệu Đơn hàng & Doanh thu</p>
 
-      <!-- CHỌN LOẠI -->
-      <div class="mode">
-        <input
-          type="radio"
-          name="mode"
-          id="beauty"
-          value="beauty"
-          checked
-        />
-        <label for="beauty">✨ Gen file nhập số đẹp</label>
-
-        <input type="radio" name="mode" id="mmb" value="mmb" />
-        <label for="mmb">📄 Nhập file số MMB</label>
+      <div class="note-box">
+        <ul>
+          <li><b>File Tổng Đơn:</b> Chứa Order ID, SKU, Trạng thái đơn, Tracking...</li>
+          <li><b>File Doanh Thu:</b> Chứa Tiền thanh toán, Doanh thu, Ngày quyết toán...</li>
+        </ul>
       </div>
 
-      <input type="file" id="file" accept=".xlsx,.xls" />
-
-      <div class="note">
-        ⚠️ File Excel chỉ được tối đa <b>10k dòng dữ liệu</b>
+      <div class="input-group">
+        <label for="file1">
+          📁 1. File TỔNG ĐƠN (Thông tin chung)
+          <span class="label-desc">Thường có cột: Order ID, Seller SKU, Tracking ID...</span>
+        </label>
+        <input type="file" id="file1" accept=".xlsx,.xls" />
       </div>
 
-      <button onclick="upload()">🚀 Xử lý & tải file</button>
+      <div class="input-group">
+        <label for="file2">
+          📁 2. File DOANH THU (Thông tin tài chính)
+          <span class="label-desc">Thường có cột: Related Order ID, Revenue, Settlement...</span>
+        </label>
+        <input type="file" id="file2" accept=".xlsx,.xls" />
+      </div>
+
+      <button id="btnSubmit" onclick="mergeFiles()">⚡ Bắt đầu gộp & Tải về</button>
 
       <div class="status" id="status"></div>
     </div>
 
     <script>
-      async function upload() {
-        const fileInput = document.getElementById("file");
+      async function mergeFiles() {
+        const file1 = document.getElementById("file1");
+        const file2 = document.getElementById("file2");
         const status = document.getElementById("status");
-        const button = document.querySelector("button");
+        const button = document.getElementById("btnSubmit");
 
-        const mode = document.querySelector(
-          'input[name="mode"]:checked'
-        ).value;
-
-        if (!fileInput.files.length) {
-          alert("Vui lòng chọn file Excel");
+        if (!file1.files.length || !file2.files.length) {
+          alert("Vui lòng chọn đủ cả 2 file (File Tổng Đơn và File Doanh Thu)!");
           return;
         }
 
         const formData = new FormData();
-        formData.append("file", fileInput.files[0]);
-        formData.append("mode", mode); // gửi loại xử lý
+        formData.append("file1", file1.files[0]);
+        formData.append("file2", file2.files[0]);
 
-        status.innerText =
-          mode === "beauty"
-            ? "✨ Đang gen file số đẹp..."
-            : "📄 Đang xử lý file MMB...";
-
+        status.className = "status";
+        status.innerText = "⏳ Đang phân tích và gộp dữ liệu...";
         button.disabled = true;
 
         try {
-          const res = await fetch("/split-excel", {
+          const res = await fetch("/merge-excel", {
             method: "POST",
             body: formData,
           });
 
-          if (!res.ok) throw new Error("Xử lý thất bại");
+          if (!res.ok) {
+             const errorText = await res.text();
+             throw new Error(errorText || "Gộp file thất bại");
+          }
 
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
 
           const a = document.createElement("a");
           a.href = url;
-          a.download =
-            mode === "beauty" ? "so_dep.zip" : "so_mmb.zip";
+          const now = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
+          a.download = `bao_cao_doi_soat_tong_hop_${now}.xlsx`; 
 
           document.body.appendChild(a);
           a.click();
-
           a.remove();
+          
           window.URL.revokeObjectURL(url);
-
-          status.innerText = "✅ Hoàn thành, file đã tải!";
+          status.innerHTML = "<span class='success'>✅ Thành công! File đã tự động tải về.</span>";
         } catch (err) {
           console.error(err);
-          status.innerText = "❌ Có lỗi xảy ra";
+          status.innerHTML = `<span class='error'>❌ Lỗi: ${err.message}</span>`;
         } finally {
           button.disabled = false;
         }
