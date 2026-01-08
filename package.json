@@ -1,11 +1,12 @@
 {
   "name": "tool-tach-excel",
   "version": "1.0.0",
-  "description": "Tool tách file Excel 600k dòng",
   "main": "main.js",
+  "author": "Sim Hai Dang",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win --x64"
+    "build:win": "rm -rf dist && electron-builder --win --x64",
+    "build:mac": "rm -rf dist && electron-builder --mac"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -13,21 +14,25 @@
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "iconv-lite": "^0.7.1",
-    "multer": "^2.0.2",
+    "multer": "^1.4.5-lts.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "electron": "^39.2.7",
-    "electron-builder": "^26.4.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.phamtrong.toolexcel",
-    "productName": "ExcelSplitter",
+    "appId": "com.simhaidang.doi-soat",
+    "productName": "DoiSoatSimHaiDang",
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "icon": "public/image.png"
     },
-    "directories": {
-      "output": "dist"
-    }
+    "asar": true,
+    "files": [
+      "**/*",
+      "!dist/*",
+      "!node_modules/.cache/*"
+    ]
   }
 }

@@ -1,207 +1,147 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-  <meta charset="UTF-8" />
-  <title>Tool Gộp Báo Cáo TikTok Shop - Sim Hải Đăng</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f0f2f5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-
-    .box {
-      background: #fff;
-      padding: 30px;
-      width: 100%;
-      max-width: 450px;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 10px;
-      color: #1e293b;
-      font-size: 22px;
-    }
-
-    .subtitle {
-      text-align: center;
-      color: #64748b;
-      font-size: 14px;
-      margin-bottom: 25px;
-    }
-
-    .input-group {
-      margin-bottom: 20px;
-    }
-
-    .input-group label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #475569;
-    }
-
-    .label-desc {
-      display: block;
-      font-size: 11px;
-      font-weight: normal;
-      color: #94a3b8;
-      margin-top: 2px;
-    }
-
-    input[type="file"] {
-      width: 100%;
-      padding: 8px;
-      border: 1px dashed #cbd5e1;
-      border-radius: 6px;
-      background: #f8fafc;
-      cursor: pointer;
-      box-sizing: border-box;
-    }
-
-    input[type="file"]:hover {
-      border-color: #2563eb;
-    }
-
-    .note-box {
-      background: #fff7ed;
-      border-left: 4px solid #f97316;
-      padding: 12px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-    }
-
-    .note-box ul {
-      margin: 0;
-      padding-left: 20px;
-      font-size: 12px;
-      color: #9a3412;
-      line-height: 1.6;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    button:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    .status {
-      margin-top: 15px;
-      font-size: 14px;
-      text-align: center;
-      min-height: 20px;
-    }
-
-    .success {
-      color: #10b981;
-      font-weight: bold;
-    }
-
-    .error {
-      color: #ef4444;
-      font-weight: bold;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="box">
-    <h2>📊 Gộp Báo Cáo Đối Soát</h2>
-    <p class="subtitle">Phiên bản Desktop - Sim Hải Đăng</p>
-
-    <div class="note-box">
-      <ul>
-        <li><b>File 1:</b> File TỔNG ĐƠN (Gốc)</li>
-        <li><b>File 2:</b> File DOANH THU (Gốc)</li>
-        <li><i>Lưu ý: Chỉ giữ lại các gói SIM theo danh mục.</i></li>
-      </ul>
-    </div>
-
-    <div class="input-group">
-      <label for="file1">📁 1. Chọn File TỔNG ĐƠN</label>
-      <input type="file" id="file1" accept=".xlsx,.xls" />
-    </div>
-
-    <div class="input-group">
-      <label for="file2">📁 2. Chọn File DOANH THU</label>
-      <input type="file" id="file2" accept=".xlsx,.xls" />
-    </div>
-
-    <button id="btnSubmit" onclick="mergeFiles()">⚡ Bắt đầu gộp & Lưu file</button>
-
-    <div class="status" id="status"></div>
-  </div>
-
-  <script>
-
-    const { ipcRenderer } = require('electron');
-
-    async function mergeFiles() {
-      const file1Input = document.getElementById("file1");
-      const file2Input = document.getElementById("file2");
-      const status = document.getElementById("status");
-      const button = document.getElementById("btnSubmit");
-
-
-      if (!file1Input.files.length || !file2Input.files.length) {
-        alert("Vui lòng chọn đủ cả 2 file!");
-        return;
-      }
-
-      const file1Path = file1Input.files[0].path;
-      const file2Path = file2Input.files[0].path;
-
-      status.className = "status";
-      status.innerText = "⏳ Đang gộp dữ liệu... Vui lòng đợi trong giây lát.";
-      button.disabled = true;
-
-      try {
-
-        const response = await ipcRenderer.invoke('process-excel', {
-          file1Path: file1Path,
-          file2Path: file2Path
-        });
-
-        if (response.success) {
-          status.innerHTML = `<span class='success'>✅ ${response.message}</span>`;
-        } else {
-          throw new Error(response.message);
+    <meta charset="UTF-8">
+    <title>Tool Đối Soát TikTok - Sim Hải Đăng</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 40px; text-align: center; background: #f0f2f5; margin: 0; }
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            max-width: 500px; 
+            margin: auto;
+        }
+        h2 { color: #1e293b; margin-bottom: 25px; }
+        
+        .file-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .file-section label {
+            display: block;
+            font-weight: bold;
+            font-size: 13px;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+        .path-text {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 8px;
+            word-break: break-all;
+            background: #fff;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
         }
 
-      } catch (err) {
-        console.error(err);
-        status.innerHTML = `<span class='error'>❌ Lỗi: ${err.message}</span>`;
-      } finally {
-        button.disabled = false;
-      }
-    }
-  </script>
-</body>
+        button { 
+            padding: 10px 20px; 
+            cursor: pointer; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 6px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        button:hover { background: #0056b3; }
+        
+        #processBtn { 
+            width: 100%; 
+            padding: 15px; 
+            font-size: 16px; 
+            margin-top: 10px;
+        }
+        #processBtn:disabled { background: #94a3b8; cursor: not-allowed; }
 
+        #status { margin-top: 25px; font-size: 14px; line-height: 1.5; }
+        .success-msg { color: #10b981; font-weight: bold; }
+        .error-msg { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>📊 Đối Soát TikTok Shop</h2>
+        
+        <div class="file-section">
+            <label>📁 BƯỚC 1: FILE TỔNG ĐƠN</label>
+            <button id="selectBtn1">Chọn file Tổng Đơn...</button>
+            <p id="path1" class="path-text">Chưa chọn file</p>
+        </div>
+
+        <div class="file-section">
+            <label>📁 BƯỚC 2: FILE DOANH THU</label>
+            <button id="selectBtn2">Chọn file Doanh Thu...</button>
+            <p id="path2" class="path-text">Chưa chọn file</p>
+        </div>
+        
+        <button id="processBtn" style="background: #28a745;">⚡ BẮT ĐẦU GỘP & LƯU BÁO CÁO</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        let file1Path = null;
+        let file2Path = null;
+
+        // Chọn file 1
+        document.getElementById('selectBtn1').onclick = async () => {
+            const path = await ipcRenderer.invoke('open-file-dialog');
+            if (path) {
+                file1Path = path;
+                document.getElementById('path1').innerText = path;
+            }
+        };
+
+        // Chọn file 2
+        document.getElementById('selectBtn2').onclick = async () => {
+            const path = await ipcRenderer.invoke('open-file-dialog');
+            if (path) {
+                file2Path = path;
+                document.getElementById('path2').innerText = path;
+            }
+        };
+
+        // Xử lý Gộp
+        document.getElementById('processBtn').onclick = async () => {
+            const status = document.getElementById('status');
+            const btn = document.getElementById('processBtn');
+
+            if (!file1Path || !file2Path) {
+                return alert('Vui lòng chọn đủ cả 2 file Tổng đơn và Doanh thu!');
+            }
+            
+            status.innerHTML = '⏳ <b>Đang xử lý...</b> Vui lòng đợi trong giây lát...';
+            btn.disabled = true;
+            
+            try {
+                // Gửi cả 2 path xuống Main Process
+                const result = await ipcRenderer.invoke('process-excel', { 
+                    file1Path: file1Path, 
+                    file2Path: file2Path 
+                });
+                
+                if (result.success) {
+                    status.innerHTML = `<div class="success-msg">✅ Xong!</div> 
+                                       <div style="font-size:12px; margin-top:5px;">${result.message}</div>`;
+                } else {
+                    status.innerHTML = `<div class="error-msg">❌ Lỗi:</div> ${result.message}`;
+                }
+            } catch (err) {
+                status.innerHTML = `<div class="error-msg">❌ Lỗi Crash:</div> ${err.message}`;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
 </html>
