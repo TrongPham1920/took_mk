@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tool Gộp Báo Cáo Excel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+      body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #f0f2f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+      }
+
+      .box {
+        background: #fff;
+        padding: 30px;
+        width: 100%;
+        max-width: 400px;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      h2 {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #1e293b;
+        font-size: 22px;
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+      }
+
+      .input-group label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #475569;
+      }
+
+      input[type="file"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 6px;
+        background: #f8fafc;
+        cursor: pointer;
+        box-sizing: border-box;
+      }
+
+      input[type="file"]:hover {
+        border-color: #2563eb;
+      }
+
+      .note {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: -10px;
+        margin-bottom: 20px;
+        line-height: 1.4;
+      }
+
+      button {
+        width: 100%;
+        padding: 14px;
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+      }
+
+      button:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      .status {
+        margin-top: 15px;
+        font-size: 14px;
+        text-align: center;
+        min-height: 20px;
+      }
+      
+      .success { color: #10b981; }
+      .error { color: #ef4444; }
+    </style>
+  </head>
+
+  <body>
+    <div class="box">
+      <h2>📊 Gộp Báo Cáo Excel</h2>
+
+      <div class="input-group">
+        <label for="file1">📁 File báo cáo thứ nhất (Chính)</label>
+        <input type="file" id="file1" accept=".xlsx,.xls" />
+      </div>
+
+      <div class="input-group">
+        <label for="file2">📁 File báo cáo thứ hai (Phụ)</label>
+        <input type="file" id="file2" accept=".xlsx,.xls" />
+      </div>
+
+      <div class="note">
+        * Hệ thống sẽ tự động gộp dữ liệu từ hai file vào một file duy nhất.
+      </div>
+
+      <button id="btnSubmit" onclick="mergeFiles()">⚡ Gộp & Tải kết quả</button>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <script>
+      async function mergeFiles() {
+        const file1 = document.getElementById("file1");
+        const file2 = document.getElementById("file2");
+        const status = document.getElementById("status");
+        const button = document.getElementById("btnSubmit");
+
+        if (!file1.files.length || !file2.files.length) {
+          alert("Vui lòng chọn đầy đủ cả 2 file Excel!");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file1", file1.files[0]);
+        formData.append("file2", file2.files[0]);
+
+        status.className = "status";
+        status.innerText = "⏳ Đang xử lý gộp dữ liệu...";
+        button.disabled = true;
+
+        try {
+       
+          const res = await fetch("/merge-excel", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) throw new Error("Gộp file thất bại");
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "bao_cao_tong_hop.xlsx"; 
+
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          
+          window.URL.revokeObjectURL(url);
+          status.innerHTML = "<span class='success'>✅ Gộp thành công! File đã được tải.</span>";
+        } catch (err) {
+          console.error(err);
+          status.innerHTML = "<span class='error'>❌ Có lỗi xảy ra trong quá trình xử lý.</span>";
+        } finally {
+          button.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>

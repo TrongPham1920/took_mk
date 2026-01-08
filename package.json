@@ -1,29 +1,33 @@
 {
-  "name": "tool",
+  "name": "tool-tach-excel",
   "version": "1.0.0",
-  "description": "",
-  "main": "genmb.js",
+  "description": "Tool tách file Excel 600k dòng",
+  "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/TrongPham1920/callback.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/TrongPham1920/callback/issues"
-  },
-  "homepage": "https://github.com/TrongPham1920/callback#readme",
   "dependencies": {
     "archiver": "^7.0.1",
+    "csv-parse": "^6.1.0",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "iconv-lite": "^0.7.1",
     "multer": "^2.0.2",
-    "xlsx": "^0.18.5",
-    "xlsx-stream-reader": "^1.1.1"
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^26.4.0"
+  },
+  "build": {
+    "appId": "com.phamtrong.toolexcel",
+    "productName": "ExcelSplitter",
+    "win": {
+      "target": "portable"
+    },
+    "directories": {
+      "output": "dist"
+    }
   }
 }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel Splitter Desktop</title>
+    <style>
+        body { font-family: sans-serif; padding: 50px; text-align: center; background: #f4f4f9; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        select { padding: 10px; margin: 10px; }
+        #status { margin-top: 20px; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Tách File Excel (600k dòng)</h2>
+        <button id="selectBtn">Chọn File Excel</button>
+        <p id="filePath">Chưa chọn file</p>
+        
+        <select id="mode">
+            <option value="beauty">Chế độ Beauty</option>
+            <option value="mmb">Chế độ MMB</option>
+        </select>
+        <br><br>
+        <button id="processBtn" style="background: #28a745;">Bắt Đầu Xử Lý</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        let selectedPath = null;
+
+        document.getElementById('selectBtn').onclick = async () => {
+            selectedPath = await ipcRenderer.invoke('open-file-dialog');
+            document.getElementById('filePath').innerText = selectedPath || 'Chưa chọn file';
+        };
+
+        document.getElementById('processBtn').onclick = async () => {
+            if (!selectedPath) return alert('Hãy chọn file trước!');
+            
+            const mode = document.getElementById('mode').value;
+            document.getElementById('status').innerText = '⏳ Đang xử lý... Vui lòng đợi...';
+            
+            const result = await ipcRenderer.invoke('process-excel', { filePath: selectedPath, mode });
+            
+            if (result.success) {
+                document.getElementById('status').innerHTML = `✅ Xong! <br> Kết quả tại: <br> <b>${result.path}</b>`;
+            } else {
+                document.getElementById('status').innerText = '❌ Lỗi: ' + result.message;
+            }
+        };
+    </script>
+</body>
+</html>

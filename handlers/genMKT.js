@@ -1,72 +1,79 @@
-const express = require("express");
-const multer = require("multer");
-const XLSX = require("xlsx");
-const fs = require("fs");
+const ExcelJS = require("exceljs");
 const path = require("path");
+const fs = require("fs");
 
-const app = express();
-const port = 3000;
-const upload = multer({ dest: "uploads/" });
+module.exports = async (inputPath) => {
+  const timestamp = Date.now();
+  const baseDir = path.dirname(inputPath);
+  const outputFile = path.join(baseDir, `Tiktok_nam92_${timestamp}.xlsx`);
 
-const outputDir = path.join(__dirname, "output");
-if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(inputPath);
 
-// chuẩn hóa key
-const normalizeRow = (row) => {
-  const obj = {};
-  for (const k in row) {
-    obj[k.trim().toLowerCase()] = row[k];
-  }
-  return obj;
+  // Lấy sheet đầu tiên làm dữ liệu nguồn
+  const sourceSheet = workbook.worksheets[0];
+  const data = [];
+
+  // Lấy header (dòng 1)
+  const headers = [];
+  sourceSheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.value
+      ? cell.value.toString().trim().toLowerCase()
+      : "";
+  });
+
+  // Đọc dữ liệu từ dòng 2
+  sourceSheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const rowData = {};
+    row.eachCell((cell, colNumber) => {
+      const header = headers[colNumber];
+      if (header) rowData[header] = cell.value;
+    });
+    data.push(rowData);
+  });
+
+  // Tạo sheet mới đặt tên là nam92
+  const nam92Sheet = workbook.addWorksheet("nam92");
+
+  // Định nghĩa cột cho sheet nam92
+  nam92Sheet.columns = [
+    { header: "Mã Vận Đơn", key: "order_id", width: 25 },
+    { header: "ID Theo Dõi", key: "tracking_id", width: 25 },
+    { header: "Ngày Đặt Hàng", key: "created_time", width: 20 },
+    { header: "Địa Chỉ", key: "address", width: 10 },
+    { header: "Sản Phẩm", key: "sku", width: 30 },
+    { header: "Số Lượng Trước Hủy", key: "qty_before", width: 15 },
+    { header: "Số Lượng Sau Hủy", key: "qty_after", width: 15 },
+    { header: "Số Lượng Cuối Cùng", key: "qty_final", width: 15 },
+    { header: "Sàn", key: "platform", width: 10 },
+    { header: "Shop", key: "shop", width: 15 },
+    { header: "Doanh Thu", key: "revenue", width: 15 },
+    { header: "Ngày Quyết Toán", key: "settlement_date", width: 15 },
+    { header: "Tình Trạng", key: "status", width: 20 },
+  ];
+
+  // Map dữ liệu vào sheet mới
+  data.forEach((item) => {
+    nam92Sheet.addRow({
+      order_id: item["order id"] || "",
+      tracking_id: item["tracking id"] || "",
+      created_time: item["created time"] || "",
+      address: "",
+      sku: item["seller sku"] || item["sku id"] || "",
+      qty_before: item["quantity"] || 0,
+      qty_after: 0,
+      qty_final: item["quantity"] || 0,
+      platform: "TIKTOK",
+      shop: "Sim Hải Đăng",
+      revenue: item["order amount"] || 0,
+      settlement_date: "",
+      status: item["order status"] || "",
+    });
+  });
+
+  // Ghi file (File này sẽ chứa cả sheet gốc và sheet nam92)
+  await workbook.xlsx.writeFile(outputFile);
+
+  return outputFile;
 };
-
-app.post("/split-excel", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).send("Chưa upload file");
-
-  try {
-    const wb = XLSX.readFile(req.file.path);
-    const originalSheetName = wb.SheetNames[0];
-    const originalSheet = wb.Sheets[originalSheetName];
-
-    let data = XLSX.utils.sheet_to_json(originalSheet);
-    data = data.map(normalizeRow);
-
-    // 👉 TẠO DỮ LIỆU CHO SHEET nam92
-    const nam92Data = data.map((row) => ({
-      "Mã Vận Đơn": row["order id"] || "",
-      "ID Theo Dõi": row["tracking id"] || "",
-      "Ngày Đặt Hàng": row["created time"] || "",
-      "Địa Chỉ": "",
-      "Sản Phẩm": row["seller sku"] || row["sku id"] || "",
-      "Số Lượng Trước Hủy": row["quantity"] || 0,
-      "Số Lượng Sau Hủy": 0,
-      "Số Lượng Cuối Cùng": row["quantity"] || 0,
-      Sàn: "TIKTOK",
-      Shop: "Sim Hải Đăng",
-      "Doanh Thu": row["order amount"] || 0,
-      "Ngày Quyết Toán": "",
-      "Tình Trạng": row["order status"] || "",
-    }));
-
-    // 👉 TẠO SHEET nam92
-    const nam92Sheet = XLSX.utils.json_to_sheet(nam92Data);
-
-    // 👉 GẮN SHEET nam92 VÀO FILE GỐC
-    XLSX.utils.book_append_sheet(wb, nam92Sheet, "nam92");
-
-    // 👉 GHI FILE
-    const outputFile = path.join(outputDir, `output_${Date.now()}.xlsx`);
-    XLSX.writeFile(wb, outputFile);
-
-    fs.unlinkSync(req.file.path);
-
-    res.send(`✅ Xử lý xong!\nFile xuất ra:\n${outputFile}`);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("❌ Lỗi xử lý file");
-  }
-});
-
-app.listen(port, () => {
-  console.log(`🚀 Server chạy tại http://localhost:${port}`);
-});
