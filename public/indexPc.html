@@ -1,207 +1,53 @@
 <!DOCTYPE html>
-<html lang="vi">
-
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Tool Gộp Báo Cáo TikTok Shop - Sim Hải Đăng</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f0f2f5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-
-    .box {
-      background: #fff;
-      padding: 30px;
-      width: 100%;
-      max-width: 450px;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 10px;
-      color: #1e293b;
-      font-size: 22px;
-    }
-
-    .subtitle {
-      text-align: center;
-      color: #64748b;
-      font-size: 14px;
-      margin-bottom: 25px;
-    }
-
-    .input-group {
-      margin-bottom: 20px;
-    }
-
-    .input-group label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #475569;
-    }
-
-    .label-desc {
-      display: block;
-      font-size: 11px;
-      font-weight: normal;
-      color: #94a3b8;
-      margin-top: 2px;
-    }
-
-    input[type="file"] {
-      width: 100%;
-      padding: 8px;
-      border: 1px dashed #cbd5e1;
-      border-radius: 6px;
-      background: #f8fafc;
-      cursor: pointer;
-      box-sizing: border-box;
-    }
-
-    input[type="file"]:hover {
-      border-color: #2563eb;
-    }
-
-    .note-box {
-      background: #fff7ed;
-      border-left: 4px solid #f97316;
-      padding: 12px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-    }
-
-    .note-box ul {
-      margin: 0;
-      padding-left: 20px;
-      font-size: 12px;
-      color: #9a3412;
-      line-height: 1.6;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      background: #2563eb;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    button:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    .status {
-      margin-top: 15px;
-      font-size: 14px;
-      text-align: center;
-      min-height: 20px;
-    }
-
-    .success {
-      color: #10b981;
-      font-weight: bold;
-    }
-
-    .error {
-      color: #ef4444;
-      font-weight: bold;
-    }
-  </style>
+    <title>Excel Splitter Desktop</title>
+    <style>
+        body { font-family: sans-serif; padding: 50px; text-align: center; background: #f4f4f9; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        select { padding: 10px; margin: 10px; }
+        #status { margin-top: 20px; color: #555; }
+    </style>
 </head>
-
 <body>
-  <div class="box">
-    <h2>📊 Gộp Báo Cáo Đối Soát</h2>
-    <p class="subtitle">Phiên bản Desktop - Sim Hải Đăng</p>
-
-    <div class="note-box">
-      <ul>
-        <li><b>File 1:</b> File TỔNG ĐƠN (Gốc)</li>
-        <li><b>File 2:</b> File DOANH THU (Gốc)</li>
-        <li><i>Lưu ý: Chỉ giữ lại các gói SIM theo danh mục.</i></li>
-      </ul>
+    <div class="card">
+        <h2>Tách File Excel (600k dòng)</h2>
+        <button id="selectBtn">Chọn File Excel</button>
+        <p id="filePath">Chưa chọn file</p>
+        
+        <select id="mode">
+            <option value="beauty">Chế độ Beauty</option>
+            <option value="mmb">Chế độ MMB</option>
+        </select>
+        <br><br>
+        <button id="processBtn" style="background: #28a745;">Bắt Đầu Xử Lý</button>
+        <div id="status"></div>
     </div>
 
-    <div class="input-group">
-      <label for="file1">📁 1. Chọn File TỔNG ĐƠN</label>
-      <input type="file" id="file1" accept=".xlsx,.xls" />
-    </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        let selectedPath = null;
 
-    <div class="input-group">
-      <label for="file2">📁 2. Chọn File DOANH THU</label>
-      <input type="file" id="file2" accept=".xlsx,.xls" />
-    </div>
+        document.getElementById('selectBtn').onclick = async () => {
+            selectedPath = await ipcRenderer.invoke('open-file-dialog');
+            document.getElementById('filePath').innerText = selectedPath || 'Chưa chọn file';
+        };
 
-    <button id="btnSubmit" onclick="mergeFiles()">⚡ Bắt đầu gộp & Lưu file</button>
-
-    <div class="status" id="status"></div>
-  </div>
-
-  <script>
-
-    const { ipcRenderer } = require('electron');
-
-    async function mergeFiles() {
-      const file1Input = document.getElementById("file1");
-      const file2Input = document.getElementById("file2");
-      const status = document.getElementById("status");
-      const button = document.getElementById("btnSubmit");
-
-
-      if (!file1Input.files.length || !file2Input.files.length) {
-        alert("Vui lòng chọn đủ cả 2 file!");
-        return;
-      }
-
-      const file1Path = file1Input.files[0].path;
-      const file2Path = file2Input.files[0].path;
-
-      status.className = "status";
-      status.innerText = "⏳ Đang gộp dữ liệu... Vui lòng đợi trong giây lát.";
-      button.disabled = true;
-
-      try {
-
-        const response = await ipcRenderer.invoke('process-excel', {
-          file1Path: file1Path,
-          file2Path: file2Path
-        });
-
-        if (response.success) {
-          status.innerHTML = `<span class='success'>✅ ${response.message}</span>`;
-        } else {
-          throw new Error(response.message);
-        }
-
-      } catch (err) {
-        console.error(err);
-        status.innerHTML = `<span class='error'>❌ Lỗi: ${err.message}</span>`;
-      } finally {
-        button.disabled = false;
-      }
-    }
-  </script>
+        document.getElementById('processBtn').onclick = async () => {
+            if (!selectedPath) return alert('Hãy chọn file trước!');
+            
+            const mode = document.getElementById('mode').value;
+            document.getElementById('status').innerText = '⏳ Đang xử lý... Vui lòng đợi...';
+            
+            const result = await ipcRenderer.invoke('process-excel', { filePath: selectedPath, mode });
+            
+            if (result.success) {
+                document.getElementById('status').innerHTML = `✅ Xong! <br> Kết quả tại: <br> <b>${result.path}</b>`;
+            } else {
+                document.getElementById('status').innerText = '❌ Lỗi: ' + result.message;
+            }
+        };
+    </script>
 </body>
-
 </html>
