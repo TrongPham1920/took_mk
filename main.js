@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const genMKT = require("./handlers/genMKTPC.js");
+const genMKT = require("./handlers/genMKT.js");
 
 let mainWindow;
 
