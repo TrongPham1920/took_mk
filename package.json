@@ -5,7 +5,11 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win --x64"
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:mac:arm": "electron-builder --mac --arm64",
+    "build:mac:intel": "electron-builder --mac --x64",
+    "build:win": "electron-builder --win portable"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -25,14 +29,15 @@
   "build": {
     "appId": "com.phamtrong.toolexcel",
     "productName": "ExcelSplitter",
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.utilities"
+    },
     "win": {
       "target": "portable"
     },
     "directories": {
       "output": "dist"
     }
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  }
 }

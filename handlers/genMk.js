@@ -28,13 +28,28 @@ const normalizeKey = (key) =>
 
 const parseMoney = (val) => {
   if (val === null || val === undefined) return 0;
+
+  // ExcelJS formula cell
+  if (typeof val === "object") {
+    if (val.result !== undefined) {
+      return Number(val.result) || 0;
+    }
+  }
+
   if (typeof val === "number") return val;
+
   const clean = val
     .toString()
     .trim()
     .replace(/[,.\s]/g, "");
+
   const num = Number(clean);
   return isNaN(num) ? 0 : num;
+};
+
+const getCellValue = (v) => {
+  if (v && typeof v === "object" && "result" in v) return v.result;
+  return v;
 };
 
 const toSnakeCaseNoAccent = (str) =>
@@ -48,7 +63,7 @@ const toSnakeCaseNoAccent = (str) =>
         .trim()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "")
-    : "khong_co_dang_so";
+    : "thuong";
 
 const DANG_SO_ALIAS_MAP = {
   "tien-don-3": "so-tien-don-3",
@@ -76,6 +91,26 @@ const cleanOutputFolder = () => {
   }
 };
 
+const formatPhone = (val) => {
+  if (!val) return "";
+
+  let phone = String(val);
+
+  phone = phone.replace(/\D/g, "");
+
+  // fix mất số 0 đầu
+  if (phone.length === 9) {
+    phone = "0" + phone;
+  }
+
+  // fix +84
+  if (phone.startsWith("84")) {
+    phone = "0" + phone.slice(2);
+  }
+
+  return phone;
+};
+
 /**
  * HANDLER CHÍNH
  */
@@ -99,7 +134,7 @@ module.exports = async function genMb(req, res) {
         entries: "emit",
         sharedStrings: "cache",
         worksheets: "emit",
-      }
+      },
     );
 
     for await (const worksheet of workbookReader) {
@@ -114,10 +149,11 @@ module.exports = async function genMb(req, res) {
           if (h) rawRow[h] = row.values[idx];
         });
 
+        console.log("headers:", headers);
+        console.log("row:", rawRow);
+
         // Xử lý logic dạng số
-        const stb = rawRow["stb"]
-          ? rawRow["stb"].toString().replace(/\D/g, "")
-          : "";
+        const stb = formatPhone(rawRow["stb"]);
         const rawDangSo = rawRow["dang_so"];
         let dangSo =
           rawDangSo && rawDangSo.toString().toUpperCase() !== "#N/A"
@@ -131,7 +167,7 @@ module.exports = async function genMb(req, res) {
           const cleanName = dangSo.replace(/[^a-zA-Z0-9]/g, "_");
           const filePath = path.join(
             sessionDir,
-            `${cleanName}_${timestamp}.xlsx`
+            `${cleanName}_${timestamp}.xlsx`,
           );
 
           const workbookWriter = new ExcelJS.stream.xlsx.WorkbookWriter({
@@ -143,13 +179,13 @@ module.exports = async function genMb(req, res) {
             { header: "phone_number", key: "phone_number", width: 15 },
             { header: "telco", key: "telco", width: 10 },
             { header: "tier", key: "tier", width: 10 },
-            { header: "purchase_price", key: "purchase_price", width: 15 },
-            { header: "price", key: "price", width: 15 },
             {
               header: "distributor_price",
               key: "distributor_price",
               width: 15,
             },
+            { header: "price", key: "price", width: 15 },
+            { header: "purchase_price", key: "purchase_price", width: 15 },
             { header: "plan", key: "plan", width: 10 },
             { header: "serial", key: "serial", width: 10 },
             { header: "variations", key: "variations", width: 20 },
@@ -166,9 +202,9 @@ module.exports = async function genMb(req, res) {
             phone_number: stb,
             telco: "GMB",
             tier: "NORMAL",
-            purchase_price: parseMoney(rawRow["gia_nhap"]),
-            price: parseMoney(rawRow["gia_tho"]),
-            distributor_price: parseMoney(rawRow["gia_ban_le"]),
+            distributor_price: parseMoney(getCellValue(rawRow["gia_ban_le"])),
+            price: parseMoney(getCellValue(rawRow["gia_tho"])),
+            purchase_price: parseMoney(getCellValue(rawRow["gia_nhap"])),
             plan: "",
             serial: "",
             variations: dangSo,
@@ -195,7 +231,7 @@ module.exports = async function genMb(req, res) {
       { header: "so_luong", key: "v" },
     ];
     Object.entries(summary).forEach(([k, v]) =>
-      sSheet.addRow({ k, v }).commit()
+      sSheet.addRow({ k, v }).commit(),
     );
     await sWriter.commit();
     outFiles.push(summaryFile);

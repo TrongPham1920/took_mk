@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 /**
- * UTILS CHUẨN HÓA (Giữ nguyên logic của bạn)
+ * UTILS CHUẨN HÓA
  */
 const normalizeKey = (key) =>
   key
@@ -19,15 +19,44 @@ const normalizeKey = (key) =>
         .replace(/^_+|_+$/g, "")
     : "";
 
+const getCellValue = (v) => {
+  if (v && typeof v === "object" && "result" in v) return v.result;
+  return v;
+};
+
 const parseMoney = (val) => {
   if (val === null || val === undefined) return 0;
+
+  if (typeof val === "object" && val.result !== undefined) {
+    return Number(val.result) || 0;
+  }
+
   if (typeof val === "number") return val;
+
   const clean = val
     .toString()
     .trim()
     .replace(/[,.\s]/g, "");
+
   const num = Number(clean);
   return isNaN(num) ? 0 : num;
+};
+
+const formatPhone = (val) => {
+  if (!val) return "";
+
+  let phone = String(val);
+  phone = phone.replace(/\D/g, "");
+
+  if (phone.length === 9) {
+    phone = "0" + phone;
+  }
+
+  if (phone.startsWith("84")) {
+    phone = "0" + phone.slice(2);
+  }
+
+  return phone;
 };
 
 const toSnakeCaseNoAccent = (str) =>
@@ -54,11 +83,11 @@ const DANG_SO_ALIAS_MAP = {
 };
 
 /**
- * HANDLER CHÍNH CHO DESKTOP
+ * HANDLER DESKTOP
  */
 module.exports = async function genMb(inputPath) {
   const timestamp = Date.now();
-  // Tạo thư mục kết quả ngay tại vị trí file gốc cho tiện
+
   const baseDir = path.dirname(inputPath);
   const sessionDir = path.join(baseDir, `Ket_Qua_MMB_${timestamp}`);
 
@@ -87,39 +116,45 @@ module.exports = async function genMb(inputPath) {
           if (h) rawRow[h] = row.values[idx];
         });
 
-        // Xử lý logic dữ liệu
-        const stb = rawRow["stb"]
-          ? rawRow["stb"].toString().replace(/\D/g, "")
-          : "";
-        const rawDangSo = rawRow["dang_so"];
+        // ===== XỬ LÝ DATA =====
+
+        const stb = formatPhone(getCellValue(rawRow["stb"]));
+
+        const rawDangSo = getCellValue(rawRow["dang_so"]);
+
         let dangSo =
           rawDangSo && rawDangSo.toString().toUpperCase() !== "#N/A"
             ? toSnakeCaseNoAccent(rawDangSo.toString())
             : "khong_co_dang_so";
 
-        if (DANG_SO_ALIAS_MAP[dangSo]) dangSo = DANG_SO_ALIAS_MAP[dangSo];
+        if (DANG_SO_ALIAS_MAP[dangSo]) {
+          dangSo = DANG_SO_ALIAS_MAP[dangSo];
+        }
 
-        // Khởi tạo file theo dạng số
+        // ===== TẠO FILE THEO DẠNG SỐ =====
+
         if (!workbooks.has(dangSo)) {
           const cleanName = dangSo.replace(/[^a-zA-Z0-9]/g, "_");
+
           const filePath = path.join(sessionDir, `${cleanName}.xlsx`);
 
           const workbookWriter = new ExcelJS.stream.xlsx.WorkbookWriter({
             filename: filePath,
           });
+
           const sheet = workbookWriter.addWorksheet("DATA");
 
           sheet.columns = [
             { header: "phone_number", key: "phone_number", width: 15 },
             { header: "telco", key: "telco", width: 10 },
             { header: "tier", key: "tier", width: 10 },
-            { header: "purchase_price", key: "purchase_price", width: 15 },
-            { header: "price", key: "price", width: 15 },
             {
               header: "distributor_price",
               key: "distributor_price",
               width: 15,
             },
+            { header: "price", key: "price", width: 15 },
+            { header: "purchase_price", key: "purchase_price", width: 15 },
             { header: "plan", key: "plan", width: 10 },
             { header: "serial", key: "serial", width: 10 },
             { header: "variations", key: "variations", width: 20 },
@@ -129,14 +164,15 @@ module.exports = async function genMb(inputPath) {
         }
 
         const { sheet } = workbooks.get(dangSo);
+
         sheet
           .addRow({
             phone_number: stb,
             telco: "GMB",
             tier: "NORMAL",
-            purchase_price: parseMoney(rawRow["gia_nhap"]),
-            price: parseMoney(rawRow["gia_tho"]),
-            distributor_price: parseMoney(rawRow["gia_ban_le"]),
+            distributor_price: parseMoney(getCellValue(rawRow["gia_ban_le"])),
+            price: parseMoney(getCellValue(rawRow["gia_tho"])),
+            purchase_price: parseMoney(getCellValue(rawRow["gia_nhap"])),
             plan: "",
             serial: "",
             variations: dangSo,
@@ -147,29 +183,38 @@ module.exports = async function genMb(inputPath) {
       }
     }
 
-    // Đóng và lưu tất cả file XLSX
+    // ===== COMMIT FILE =====
+
     for (const [name, entry] of workbooks) {
       await entry.writer.commit();
     }
 
-    // Tạo file Tổng hợp
-    const summaryFile = path.join(sessionDir, `00_tong_hop.xlsx`);
+    // ===== FILE TỔNG HỢP =====
+
+    const summaryFile = path.join(sessionDir, "00_tong_hop.xlsx");
+
     const sWriter = new ExcelJS.stream.xlsx.WorkbookWriter({
       filename: summaryFile,
     });
+
     const sSheet = sWriter.addWorksheet("TONG HOP");
+
     sSheet.columns = [
       { header: "dang_so", key: "k" },
       { header: "so_luong", key: "v" },
     ];
+
     Object.entries(summary).forEach(([k, v]) =>
-      sSheet.addRow({ k, v }).commit()
+      sSheet.addRow({ k, v }).commit(),
     );
+
     await sWriter.commit();
 
-    return sessionDir; // Trả về đường dẫn để UI thông báo cho người dùng
+    console.log("✔ Xuất file thành công:", sessionDir);
+
+    return sessionDir;
   } catch (err) {
-    console.error("Lỗi genMb:", err);
+    console.error("❌ Lỗi genMb:", err);
     throw err;
   }
 };
